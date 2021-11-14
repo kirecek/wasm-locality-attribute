@@ -11,11 +11,22 @@ pub fn _start() {
 }
 
 #[repr(u32)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 #[non_exhaustive]
-pub enum TrafficDirection {
-    Unspecified,
-    Inbound,
-    Outbound,
+enum TrafficDirection {
+    Unspecified = 0,
+    Inbound = 1,
+    Outbound = 2,
+}
+
+impl TrafficDirection {
+    fn from_utf8(input: &Vec<u8>) -> TrafficDirection {
+        match &input[0].to_string()[..] {
+            "1" => TrafficDirection::Inbound,
+            "2" => TrafficDirection::Outbound,
+            _ => TrafficDirection::Unspecified,
+        }
+    }
 }
 
 struct PeerLocalityRoot;
@@ -24,7 +35,9 @@ impl Context for PeerLocalityRoot {}
 
 impl RootContext for PeerLocalityRoot {
     fn create_http_context(&self, _: u32) -> Option<Box<dyn HttpContext>> {
-        Some(Box::new(PeerLocality {}))
+        Some(Box::new(PeerLocality {
+            locality_received: true,
+        }))
     }
 
     fn get_type(&self) -> Option<ContextType> {
@@ -32,7 +45,9 @@ impl RootContext for PeerLocalityRoot {
     }
 }
 
-struct PeerLocality;
+struct PeerLocality {
+    locality_received: bool,
+}
 
 impl Context for PeerLocality {}
 
@@ -40,37 +55,53 @@ impl HttpContext for PeerLocality {
     fn on_http_request_headers(&mut self, _: usize) -> Action {
         match self.get_http_request_header(PEER_LOCALITY_EXCHANGE_HEADER) {
             Some(v) => {
-                self.set_property(vec!["downstream_peer_zone"], Some(v.as_bytes()));
                 self.set_http_request_header(PEER_LOCALITY_EXCHANGE_HEADER, None);
+                self.set_property(vec!["downstream_peer_zone"], Some(v.as_bytes()));
             }
-            None => {}
+            None => self.locality_received = false,
         }
 
-        match self.get_property(vec!["listener_direction"]) {
-            Some(d) => {
-                let s = &d[0].to_string()[..];
+        let direction =
+            TrafficDirection::from_utf8(&self.get_property(vec!["listener_direction"]).unwrap());
 
-                // skip inbound proxy
-                if !s.eq("1") {
-                    match self.get_property(vec!["node", "locality", "zone"]) {
-                        Some(v) => {
-                            self.set_http_request_header(
-                                PEER_LOCALITY_EXCHANGE_HEADER,
-                                Some(str::from_utf8(&v).unwrap()),
-                            );
-                        }
-                        None => {}
-                    }
+        if direction != TrafficDirection::Inbound {
+            match self.get_property(vec!["node", "locality", "zone"]) {
+                Some(v) => {
+                    self.set_http_request_header(
+                        PEER_LOCALITY_EXCHANGE_HEADER,
+                        Some(str::from_utf8(&v).unwrap()),
+                    );
                 }
+                None => {}
             }
-            None => {}
         }
 
         Action::Continue
     }
 
     fn on_http_response_headers(&mut self, _: usize) -> Action {
-        // TODO
+        match self.get_http_response_header(PEER_LOCALITY_EXCHANGE_HEADER) {
+            Some(v) => {
+                self.set_http_response_header(PEER_LOCALITY_EXCHANGE_HEADER, None);
+                self.set_property(vec!["upstream_peer_zone"], Some(v.as_bytes()));
+            }
+            None => {}
+        }
+
+        let direction =
+            TrafficDirection::from_utf8(&self.get_property(vec!["listener_direction"]).unwrap());
+
+        if direction != TrafficDirection::Outbound && self.locality_received {
+            match self.get_property(vec!["node", "locality", "zone"]) {
+                Some(v) => {
+                    self.set_http_response_header(
+                        PEER_LOCALITY_EXCHANGE_HEADER,
+                        Some(str::from_utf8(&v).unwrap()),
+                    );
+                }
+                None => {}
+            }
+        }
         Action::Continue
     }
 }

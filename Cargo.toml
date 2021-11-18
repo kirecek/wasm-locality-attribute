@@ -12,3 +12,8 @@ proxy-wasm = "0.1.4"
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]
+
+[package.metadata.raze]
+package_aliases_dir = "bazel/cargo"
+workspace_path = "//bazel/cargo"
+genmode = "Remote"

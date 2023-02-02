@@ -1,5 +1,5 @@
 [package]
-name = "wasm-locality-attr"
+name = "wasm-locality-attribute"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,13 +7,8 @@ edition = "2021"
 
 [dependencies]
 log = "0.4.8"
-proxy-wasm = "0.1.4"
+proxy-wasm = "0.2.1"
 
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]
-
-[package.metadata.raze]
-package_aliases_dir = "bazel/cargo"
-workspace_path = "//bazel/cargo"
-genmode = "Remote"

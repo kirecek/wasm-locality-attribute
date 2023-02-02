@@ -1,6 +1,6 @@
-module github.com/kirecek/wasm-locality-attr
+module test
 
-go 1.17
+go 1.19
 
 require (
 	github.com/istio-ecosystem/wasm-extensions v0.0.0-20211117063530-74fd55f64e6c

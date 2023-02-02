@@ -5,11 +5,10 @@ use std::str;
 
 const PEER_LOCALITY_EXCHANGE_HEADER: &str = "x-envoy-peer-zone";
 
-#[no_mangle]
-pub fn _start() {
+proxy_wasm::main! {{
     proxy_wasm::set_log_level(LogLevel::Trace);
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> { Box::new(PeerLocalityRoot) });
-}
+}}
 
 struct PeerLocalityRoot;
 
@@ -30,7 +29,7 @@ struct PeerLocality;
 impl Context for PeerLocality {}
 
 impl HttpContext for PeerLocality {
-    fn on_http_request_headers(&mut self, _: usize) -> Action {
+    fn on_http_request_headers(&mut self, _: usize, _: bool) -> Action {
         match self.get_http_request_header(PEER_LOCALITY_EXCHANGE_HEADER) {
             Some(v) => {
                 self.set_http_request_header(PEER_LOCALITY_EXCHANGE_HEADER, None);
@@ -50,7 +49,7 @@ impl HttpContext for PeerLocality {
         Action::Continue
     }
 
-    fn on_http_response_headers(&mut self, _: usize) -> Action {
+    fn on_http_response_headers(&mut self, _: usize, _: bool) -> Action {
         match self.get_http_response_header(PEER_LOCALITY_EXCHANGE_HEADER) {
             Some(v) => {
                 self.set_http_response_header(PEER_LOCALITY_EXCHANGE_HEADER, None);

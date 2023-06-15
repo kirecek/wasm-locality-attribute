@@ -8,12 +8,12 @@ release:
 	cargo wasi build --release
 
 build-image:
-	buildah build -t $(IMAGE)
+	docker build -t $(IMAGE) .
 
 build-release-image: release build-image
 
 push-image:
-	buildah push $(IMAGE)
+	docker push $(IMAGE)
 
 clean:
 	cargo clean

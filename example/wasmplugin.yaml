@@ -1,0 +1,6 @@
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: wasm-locality-attribute
+spec:
+  url: oci://docker.io/kirecek/wasm-locality-attribute:v0.1

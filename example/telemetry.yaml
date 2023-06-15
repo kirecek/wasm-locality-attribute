@@ -1,0 +1,25 @@
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: location-label
+spec:
+  metrics:
+    - providers:
+        - name: prometheus
+      overrides:
+      - match:
+          metric: REQUEST_COUNT
+          mode: SERVER
+        tagOverrides:
+          source_zone:
+            value: downstream_peer_zone
+          destination_zone:
+            value: node.locality.zone
+      - match:
+          metric: REQUEST_COUNT
+          mode: CLIENT
+        tagOverrides:
+          source_zone:
+            value: node.locality.zone
+          destination_zone:
+            value: upstream_peer_zone
